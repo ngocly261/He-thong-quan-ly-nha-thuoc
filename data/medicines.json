@@ -1,0 +1,32 @@
+[
+    {
+        "maThuoc": "T001",
+        "tenThuoc": "Panadol",
+        "loai": "ThuocKhongKeDon",
+        "thanhPhan": "Paracetamol 500mg",
+        "donviTinh": "Vien",
+        "giaNhap": 500,
+        "soLuong": 500,
+        "hsd": "2026-06-15"
+    },
+    {
+        "maThuoc": "T002",
+        "tenThuoc": "Panadol Extra",
+        "loai": "ThuocKhongKeDon",
+        "thanhPhan": "Paracetamol 500mg, Caffein 65mg",
+        "donviTinh": "Vien",
+        "giaNhap": 800,
+        "soLuong": 500,
+        "hsd": "2026-06-15"
+    },
+    {
+        "maThuoc": "T003",
+        "tenThuoc": "Panadol Cam cum",
+        "loai": "ThuocKhongKeDon",
+        "thanhPhan": "Paracetamol 500mg, Caffeine 25mg, Phenylephrine hydrochloride 5mg",
+        "donviTinh": "Vien",
+        "giaNhap": 1000,
+        "soLuong": 500,
+        "hsd": "2026-06-15"
+    }
+]
