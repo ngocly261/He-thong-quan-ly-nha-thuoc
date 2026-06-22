@@ -15,7 +15,6 @@ class CuaSoChinh(tk.Tk):
         self.title("HỆ THỐNG QUẢN LÝ NHÀ THUỐC ĐỒ ÁN")
         self.geometry("1000x600")
         
-        # Nạp kho thuốc từ cơ sở dữ liệu JSON lên Bảng băm bộ nhớ khi khởi động app
         self.kho_thuoc = doc_kho_thuoc_tu_json()
         
         # --- THANH MENU ĐIỀU HƯỚNG PHÍA TRÊN ---
@@ -62,7 +61,6 @@ class CuaSoChinh(tk.Tk):
         columns = ("ma", "ten", "thanh_phan", "dvt", "gia_nhap", "gia_ban", "hsd", "ton", "loai")
         self.tree = ttk.Treeview(table_frame, columns=columns, show="headings")
 
-        # Cấu hình tiêu đề cột
         self.tree.heading("ma", text="Mã Thuốc")
         self.tree.heading("ten", text="Tên Thuốc")
         self.tree.heading("thanh_phan", text="Thành Phần")
@@ -73,21 +71,17 @@ class CuaSoChinh(tk.Tk):
         self.tree.heading("ton", text="Tồn Kho")
         self.tree.heading("loai", text="Phân Loại")
         
-        # Cấu hình độ rộng cột gọn gàng
         for col in columns:
             self.tree.column(col, width=100, anchor="center")
         
-        # Tạo thanh cuộn (Scrollbar) cho bảng
         scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
         self.tree.configure(yscroll=scrollbar.set)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.tree.pack(fill=tk.BOTH, expand=True)
         
-        # Thiết lập màu nền highlight cho cảnh báo nguy cơ nghiệp vụ
         self.tree.tag_configure("HET_HAN", background="#ff7675", foreground="white")     # Màu đỏ nếu hết hạn sử dụng
         self.tree.tag_configure("SAP_HET_HANG", background="#ffeaa7", foreground="#2d3436")# Màu cam/vàng nếu tồn kho thấp (<10 vỉ/hộp)
         
-        # Nạp dữ liệu lên bảng lần đầu
         self.lam_moi_bang_du_lieu()
 
     def lam_moi_bang_du_lieu(self, danh_sach_thuoc=None):
@@ -100,10 +94,8 @@ class CuaSoChinh(tk.Tk):
             
         for t in danh_sach_thuoc:
             tag = "NORMAL"
-            # 1. Kiểm tra an toàn hạn sử dụng trước
             if not t.kiem_tra_han_dung():
                 tag = "HET_HAN"
-            # 2. Kiểm tra tồn kho dưới ngưỡng tối thiểu an toàn (Dưới 10 đơn vị)
             elif t.so_luong_ton < 10:
                 tag = "SAP_HET_HANG"
                 
@@ -120,13 +112,11 @@ class CuaSoChinh(tk.Tk):
             self.lam_moi_bang_du_lieu()
             return
             
-        # 1. Ưu tiên 1: Tra cứu nhanh O(1) từ bảng băm theo mã thuốc qua nạp chồng toán tử
         thuoc_tim_thay = self.kho_thuoc[tu_khoa]
         if thuoc_tim_thay:
             self.lam_moi_bang_du_lieu([thuoc_tim_thay])
             return
             
-        # 2. Ưu tiên 2: Nếu không thấy mã, gọi Lọc đệ quy tìm kiếm theo chuỗi hoạt chất thành phần
         ket_qua_loc = self.kho_thuoc.loc_thuoc_theo_hoat_chat(tu_khoa)
         self.lam_moi_bang_du_lieu(ket_qua_loc)
 
@@ -160,9 +150,9 @@ class CuaSoChinh(tk.Tk):
         """Ghi nhận đơn hàng mới thành công, cập nhật kho vật lý và ghi file JSON."""
         luu_don_hang_vao_lich_su(don_thuoc_da_ban)
         self.luu_va_lam_moi_kho()
-    
+
     def xu_ly_xoa_thuoc(self):
-        """Xóa thuốc khỏi bảng băm, cập nhật JSON và xóa trực tiếp dòng hiển thị trên giao diện."""
+        """Xóa thuốc triệt để trong Bảng băm, ghi đè file JSON và xóa giao diện."""
         if not hasattr(self, 'tree'):
             return
             
@@ -175,25 +165,39 @@ class CuaSoChinh(tk.Tk):
         
         xac_nhan = messagebox.askyesno("Xác nhận xóa", f"Bạn có chắc chắn muốn xóa thuốc {ma_thuoc} khỏi hệ thống không?")
         if xac_nhan:
-            # 1. Gọi lệnh xóa trực tiếp từ bảng băm nội bộ của đối tượng kho_thuoc
-            if hasattr(self.kho_thuoc, 'kho_thuoc'):
+            # 1. ÉP BUỘC XÓA TRONG LOGIC BẢNG BĂM (Gọi thẳng hàm xoa của BangBam)
+            da_xoa_logic = False
+            
+            # Kiểm tra xem kho_thuoc của bạn giữ đối tượng Bảng băm ở biến nào
+            if hasattr(self.kho_thuoc, 'xoa'):
+                self.kho_thuoc.xoa(ma_thuoc)
+                da_xoa_logic = True
+            elif hasattr(self.kho_thuoc, 'kho_thuoc') and hasattr(self.kho_thuoc.kho_thuoc, 'xoa'):
                 self.kho_thuoc.kho_thuoc.xoa(ma_thuoc)
-            elif hasattr(self.kho_thuoc, 'bang_bam'):
+                da_xoa_logic = True
+            elif hasattr(self.kho_thuoc, 'bang_bam') and hasattr(self.kho_thuoc.bang_bam, 'xoa'):
                 self.kho_thuoc.bang_bam.xoa(ma_thuoc)
+                da_xoa_logic = True
+
+            # 2. CẬP NHẬT GHI ĐÈ FILE JSON
+            if da_xoa_logic:
+            # GHI ĐÈ TRỰC TIẾP VÀO FILE
+                import json
+                import os
+            # Đường dẫn tuyệt đối tới file JSON (bạn cần thay đường dẫn cho đúng máy bạn)
+                path_file = r"D:\Hệ thống quản lý nhà thuốc\du_lieu\danh_muc_thuoc.json"
             
-            # 2. Ghi đè file JSON để cập nhật dữ liệu bền vững xuống ổ đĩa
-            try:
-                import luu_tru.xu_ly_json as xl_json
-                xl_json.ghi_kho_thuoc_vao_json(self.kho_thuoc)
-            except Exception:
-                import sys, os
-                sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-                import luu_tru.xu_ly_json as xl_json
-                xl_json.ghi_kho_thuoc_vao_json(self.kho_thuoc)
+            # Chuyển đổi dữ liệu từ bảng băm sang dict để ghi
+                data_dict = {}
+                for item in self.kho_thuoc.lay_tat_ca_gia_tri():
+                    data_dict[item.ma_thuoc] = vars(item) 
             
-            # 3. Xóa dòng trực tiếp trên giao diện Treeview ngay lập tức
+            with open(path_file, 'w', encoding='utf-8') as f:
+                json.dump(data_dict, f, ensure_ascii=False, indent=4)
+            
+            # 3. XÓA DÒNG TRÊN GIAO DIỆN TREEVIEW
             self.tree.delete(item_duoc_chon)
-            messagebox.showinfo("Thành công", f"Đã xóa hoàn toàn thuốc {ma_thuoc}!")
+            messagebox.showinfo("Thành công", f"Đã xóa hoàn toàn thuốc {ma_thuoc} khỏi hệ thống!")
 
     def xu_ly_sua_thuoc(self):
         """Mở form sửa thuốc tương thích 100% với form_thuoc.py hiện tại mà không lỗi tham số."""
@@ -209,11 +213,8 @@ class CuaSoChinh(tk.Tk):
         thuoc_hien_tai = self.kho_thuoc[ma_thuoc]
         
         from giao_dien.form_thuoc import FormThuoc
-        # Chỉ truyền đúng 2 tham số gốc mà hàm __init__ của FormThuoc đang nhận để tránh lỗi 'callback_luu'
         cua_so_sua = FormThuoc(self, self.kho_thuoc)
         
-        # Gán đè đối tượng thuốc cần sửa vào thuộc tính của form
         cua_so_sua.thuoc_can_sua = thuoc_hien_tai
         
-        # Lắng nghe sự kiện khi đóng cửa sổ FormThuoc để tự động nạp lại bảng ở cửa sổ chính
         cua_so_sua.bind("<Destroy>", lambda e: self.lam_moi_bang_du_lieu())

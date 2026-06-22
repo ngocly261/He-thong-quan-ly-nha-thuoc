@@ -13,9 +13,8 @@ class FormThuoc(tk.Toplevel):
         
         self.title("Thêm Dược Phẩm Mới")
         self.geometry("450x550")
-        self.grab_set() # Khóa tiêu điểm vào cửa sổ này
+        self.grab_set() 
         
-        # Thành phần giao diện chính
         tk.Label(self, text="THÔNG TIN DƯỢC PHẨM", font=("Arial", 14, "bold"), fg="#2c3e50").pack(pady=15)
         
         form_frame = tk.Frame(self, padx=20)
@@ -38,20 +37,17 @@ class FormThuoc(tk.Toplevel):
             
         form_frame.columnconfigure(1, weight=1)
         
-        # Lựa chọn phân loại thuốc để hiển thị trường đặc thù (Tính Đa Hình OOP)
         tk.Label(form_frame, text="Phân loại thuốc:", font=("Arial", 10)).grid(row=7, column=0, sticky="w", pady=5)
         self.cbo_loai = ttk.Combobox(form_frame, values=["Thuốc kê đơn", "Thuốc không kê đơn", "Thực phẩm chức năng"], state="readonly", font=("Arial", 10))
         self.cbo_loai.grid(row=7, column=1, sticky="ew", pady=5)
         self.cbo_loai.current(1)
         self.cbo_loai.bind("<<ComboboxSelected>>", lambda e: self.thay_doi_loai_thuoc())
         
-        # Khung chứa các trường động đặc thù
         self.dynamic_frame = tk.Frame(form_frame)
         self.dynamic_frame.grid(row=8, column=0, columnspan=2, sticky="ew", pady=5)
         self.dynamic_entry_1 = None
         self.dynamic_entry_2 = None
         
-        # Nút bấm lưu trữ
         btn_save = tk.Button(self, text="LƯU VÀO KHO", font=("Arial", 11, "bold"), bg="#27ae60", fg="white", command=self.luu_du_lieu)
         btn_save.pack(fill=tk.X, padx=20, pady=20)
 
@@ -94,7 +90,6 @@ class FormThuoc(tk.Toplevel):
                 
             loai = self.cbo_loai.get()
             
-            # Đa hình khởi tạo lớp con phù hợp
             if loai == "Thuốc kê đơn":
                 ma_bs = self.dynamic_entry_1.get().strip() if self.dynamic_entry_1 else ""
                 lieu = self.dynamic_entry_2.get().strip() if self.dynamic_entry_2 else ""
@@ -105,7 +100,6 @@ class FormThuoc(tk.Toplevel):
             else:
                 thuoc_moi = ThuocKhongKeDon(ma, ten, thanh_phan, dvt, gia, hsd, ton)
                 
-            # Đưa vào kho lưu trữ (Bảng băm)
             self.kho.them_thuoc(thuoc_moi)
             self.callback_cap_nhat() # Làm mới bảng hiển thị chính
             messagebox.showinfo("Thành công", f"Đã thêm/cập nhật thuốc '{ten}' vào kho thuốc!")

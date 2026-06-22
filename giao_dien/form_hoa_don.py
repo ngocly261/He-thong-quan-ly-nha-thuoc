@@ -12,14 +12,12 @@ class FormHoaDon(tk.Toplevel):
         self.kho = kho_thuoc
         self.callback_luu_xong = callback_luu_xong
         
-        # Khởi tạo mã đơn hàng ngẫu nhiên độc nhất
         self.don_thuoc = DonThuoc(ma_don=f"HD{random.randint(1000, 9999)}")
         
         self.title(f"Lập Hóa Đơn - Mã: {self.don_thuoc.ma_don}")
         self.geometry("600x500")
         self.grab_set()
         
-        # Chia bố cục giao diện làm 2 vùng trái (nhập liệu) và phải (xem trước hóa đơn)
         left_frame = tk.LabelFrame(self, text="Chọn thuốc bán", padx=10, pady=10)
         left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=10)
         
@@ -58,7 +56,6 @@ class FormHoaDon(tk.Toplevel):
             messagebox.showerror("Lỗi số lượng", "Số lượng mua phải là một số nguyên dương!")
             return
             
-        # Tra cứu tối ưu O(1) từ Kho bằng bảng băm qua nạp chồng toán tử __getitem__
         thuoc = self.kho[ma]
         
         if not thuoc:
@@ -66,7 +63,6 @@ class FormHoaDon(tk.Toplevel):
             return
             
         try:
-            # Hàm này sẽ tự kiểm tra hạn dùng & tồn kho để ném ngoại lệ nếu có lỗi
             self.don_thuoc.them_san_pham(thuoc, sl)
             self.cap_nhat_giao_dien_hoa_don()
             self.ent_ma.delete(0, tk.END)
@@ -87,9 +83,7 @@ class FormHoaDon(tk.Toplevel):
             messagebox.showwarning("Đơn rỗng", "Vui lòng thêm ít nhất một sản phẩm để thanh toán!")
             return
             
-        # Thực hiện trừ kho vật lý
         self.don_thuoc.thuc_hiện_tru_kho()
-        # Gọi callback để lưu file JSON lưu trữ và cập nhật lại cửa sổ chính
         self.callback_luu_xong(self.don_thuoc)
         
         messagebox.showinfo("Thành công", f"Hóa đơn {self.don_thuoc.ma_don} đã được thanh toán và lưu lịch sử!")

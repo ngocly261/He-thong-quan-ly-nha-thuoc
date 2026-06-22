@@ -1,15 +1,1 @@
-[
-    {
-        "ma_don": "HD3150",
-        "ngay_ke": "22/06/2026 17:08:48",
-        "tong_tien": 142065.0,
-        "chi_tiet": [
-            {
-                "ma_thuoc": "TA101",
-                "ten_thuoc": "thuốc đau bụng",
-                "so_luong": 1,
-                "gia_ban_luc_do": 142065.0
-            }
-        ]
-    }
-]
+[]
