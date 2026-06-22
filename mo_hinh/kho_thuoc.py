@@ -53,3 +53,10 @@ class KhoThuoc:
             else:
                 raise KeyError(f"Không tìm thấy mã thuốc '{ma_thuoc}' trong kho để cập nhật số lượng.")
         return self
+    def cap_nhat_thuoc(self, thuoc_moi):
+        """Sửa thông tin thuốc dựa trên mã thuốc."""
+        return self.bang_bam.cap_nhat(thuoc_moi.ma_thuoc, thuoc_moi)
+
+    def xoa_thuoc(self, ma_thuoc):
+        """Xóa thuốc khỏi hệ thống bảng băm."""
+        return self.bang_bam.xoa(ma_thuoc)

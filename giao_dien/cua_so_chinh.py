@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from luu_tru.xu_ly_json import doc_kho_thuoc_tu_json, ghi_kho_thuoc_vao_json
 import tkinter as tk
 from tkinter import ttk, messagebox
 from luu_tru.xu_ly_json import doc_kho_thuoc_tu_json, ghi_kho_thuoc_vao_json, luu_don_hang_vao_lich_su
@@ -23,6 +27,12 @@ class CuaSoChinh(tk.Tk):
         
         btn_add = tk.Button(top_bar, text="+ Nhập Thuốc Mới", bg="#2ecc71", fg="white", font=("Arial", 10, "bold"), command=self.mo_form_them_thuoc)
         btn_add.pack(side=tk.LEFT, padx=10, pady=10)
+
+        btn_sua = tk.Button(top_bar, text="✏️ Sửa Thuốc", bg="#f39c12", fg="white", font=("Arial", 10, "bold"), command=self.xu_ly_sua_thuoc)
+        btn_sua.pack(side=tk.LEFT, padx=5)
+
+        btn_xoa = tk.Button(top_bar, text="🗑️ Xóa Thuốc", bg="#c0392b", fg="white", font=("Arial", 10, "bold"), command=self.xu_ly_xoa_thuoc)
+        btn_xoa.pack(side=tk.LEFT, padx=5)
         
         btn_invoice = tk.Button(top_bar, text="🛒 Lập Đơn Bán Hàng", bg="#3498db", fg="white", font=("Arial", 10, "bold"), command=self.mo_form_hoa_don)
         btn_invoice.pack(side=tk.LEFT, padx=10, pady=10)
@@ -150,3 +160,60 @@ class CuaSoChinh(tk.Tk):
         """Ghi nhận đơn hàng mới thành công, cập nhật kho vật lý và ghi file JSON."""
         luu_don_hang_vao_lich_su(don_thuoc_da_ban)
         self.luu_va_lam_moi_kho()
+    
+    def xu_ly_xoa_thuoc(self):
+        """Xóa thuốc khỏi bảng băm, cập nhật JSON và xóa trực tiếp dòng hiển thị trên giao diện."""
+        if not hasattr(self, 'tree'):
+            return
+            
+        item_duoc_chon = self.tree.selection()
+        if not item_duoc_chon:
+            messagebox.showwarning("Nhắc nhở", "Vui lòng chọn một loại thuốc trong bảng để xóa!")
+            return
+            
+        ma_thuoc = self.tree.item(item_duoc_chon)['values'][0]
+        
+        xac_nhan = messagebox.askyesno("Xác nhận xóa", f"Bạn có chắc chắn muốn xóa thuốc {ma_thuoc} khỏi hệ thống không?")
+        if xac_nhan:
+            # 1. Gọi lệnh xóa trực tiếp từ bảng băm nội bộ của đối tượng kho_thuoc
+            if hasattr(self.kho_thuoc, 'kho_thuoc'):
+                self.kho_thuoc.kho_thuoc.xoa(ma_thuoc)
+            elif hasattr(self.kho_thuoc, 'bang_bam'):
+                self.kho_thuoc.bang_bam.xoa(ma_thuoc)
+            
+            # 2. Ghi đè file JSON để cập nhật dữ liệu bền vững xuống ổ đĩa
+            try:
+                import luu_tru.xu_ly_json as xl_json
+                xl_json.ghi_kho_thuoc_vao_json(self.kho_thuoc)
+            except Exception:
+                import sys, os
+                sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                import luu_tru.xu_ly_json as xl_json
+                xl_json.ghi_kho_thuoc_vao_json(self.kho_thuoc)
+            
+            # 3. Xóa dòng trực tiếp trên giao diện Treeview ngay lập tức
+            self.tree.delete(item_duoc_chon)
+            messagebox.showinfo("Thành công", f"Đã xóa hoàn toàn thuốc {ma_thuoc}!")
+
+    def xu_ly_sua_thuoc(self):
+        """Mở form sửa thuốc tương thích 100% với form_thuoc.py hiện tại mà không lỗi tham số."""
+        if not hasattr(self, 'tree'):
+            return
+            
+        item_duoc_chon = self.tree.selection()
+        if not item_duoc_chon:
+            messagebox.showwarning("Nhắc nhở", "Vui lòng chọn một loại thuốc trong bảng để sửa!")
+            return
+            
+        ma_thuoc = self.tree.item(item_duoc_chon)['values'][0]
+        thuoc_hien_tai = self.kho_thuoc[ma_thuoc]
+        
+        from giao_dien.form_thuoc import FormThuoc
+        # Chỉ truyền đúng 2 tham số gốc mà hàm __init__ của FormThuoc đang nhận để tránh lỗi 'callback_luu'
+        cua_so_sua = FormThuoc(self, self.kho_thuoc)
+        
+        # Gán đè đối tượng thuốc cần sửa vào thuộc tính của form
+        cua_so_sua.thuoc_can_sua = thuoc_hien_tai
+        
+        # Lắng nghe sự kiện khi đóng cửa sổ FormThuoc để tự động nạp lại bảng ở cửa sổ chính
+        cua_so_sua.bind("<Destroy>", lambda e: self.lam_moi_bang_du_lieu())

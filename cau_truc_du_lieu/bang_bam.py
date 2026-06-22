@@ -74,3 +74,33 @@ class BangBam:
                 danh_sach.append(hien_tai.value)
                 hien_tai = hien_tai.next
         return danh_sach
+    
+    def cap_nhat(self, key, du_lieu_moi):
+        """Tìm kiếm phần tử theo mã thuốc và cập nhật thông tin mới O(1)."""
+        ma_hoa = self._ham_bam(key)
+        hien_tai = self.cac_o[ma_hoa]
+        
+        while hien_tai:
+            if hien_tai.key == key:
+                hien_tai.value = du_lieu_moi
+                return True
+            hien_tai = hien_tai.tiep_theo
+        return False
+
+    def xoa(self, key):
+        """Xóa nút chứa mã thuốc ra khỏi danh sách liên kết của ô băm O(1)."""
+        ma_hoa = self._ham_bam(key)
+        hien_tai = self.cac_o[ma_hoa]
+        truoc_do = None
+        
+        while hien_tai:
+            if hien_tai.key == key:
+                if truoc_do:
+                    truoc_do.tiep_theo = hien_tai.tiep_theo
+                else:
+                    self.cac_o[ma_hoa] = hien_tai.tiep_theo
+                self.so_luong_tu_khoa -= 1
+                return True
+            truoc_do = hien_tai
+            hien_tai = hien_tai.tiep_theo
+        return False
