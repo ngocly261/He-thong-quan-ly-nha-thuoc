@@ -1,0 +1,13 @@
+{
+    "TA101": {
+        "ten_thuoc": "thuốc đau bụng",
+        "thanh_phan": "thyamazol",
+        "don_vi_tinh": "mg",
+        "gia_nhap": 123000.0,
+        "han_su_dung": "22/12/2028",
+        "so_luong_ton": 1000,
+        "loai": "ThuocKeDon",
+        "ma_bac_si": "TO11",
+        "canh_bao_lieu_dung": "Chống chỉ định với trẻ em dưới 6 tuổi"
+    }
+}
