@@ -8,15 +8,7 @@
         "so_luong_ton": 100,
         "loai": "ThuocKhongKeDon"
     },
-    "T01": {
-        "ten_thuoc": "Thuốc đau bụng",
-        "thanh_phan": "a",
-        "don_vi_tinh": "vỉ",
-        "gia_nhap": 10000.0,
-        "han_su_dung": "26/2/2028",
-        "so_luong_ton": 10,
-        "loai": "ThuocKhongKeDon"
-    },
+  
     "TA101": {
         "ten_thuoc": "thuốc đau bụng",
         "thanh_phan": "thyamazol",
