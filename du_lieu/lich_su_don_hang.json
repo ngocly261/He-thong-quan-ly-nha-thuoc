@@ -1,1 +1,15 @@
-[]
+[
+    {
+        "ma_don": "HD4234",
+        "ngay_ke": "23/06/2026 18:23:11",
+        "tong_tien": 158125.0,
+        "chi_tiet": [
+            {
+                "ma_thuoc": "T002",
+                "ten_thuoc": "Vitamin C 500mg",
+                "so_luong": 1,
+                "gia_ban_luc_do": 158125.0
+            }
+        ]
+    }
+]

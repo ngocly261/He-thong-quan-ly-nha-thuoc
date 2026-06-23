@@ -14,6 +14,7 @@ class CuaSoChinh(tk.Tk):
         super().__init__()
         self.title("HỆ THỐNG QUẢN LÝ NHÀ THUỐC ĐỒ ÁN")
         self.geometry("1000x600")
+        self.state('zoomed')
         
         self.kho_thuoc = doc_kho_thuoc_tu_json()
         
