@@ -153,7 +153,7 @@ class CuaSoChinh(tk.Tk):
         self.luu_va_lam_moi_kho()
 
     def xu_ly_xoa_thuoc(self):
-        """Xóa thuốc vĩnh viễn khỏi file JSON và cập nhật giao diện hiển thị."""
+        """Xóa thuốc đồng thời trên giao diện hiển thị và tìm gốc file JSON để xóa vĩnh viễn."""
         import json
         import os
         
@@ -167,60 +167,76 @@ class CuaSoChinh(tk.Tk):
             
         ma_thuoc = self.tree.item(item_duoc_chon)['values'][0]
         
-        xac_nhan = messagebox.askyesno("Xác nhận xóa", f"Bạn có chắc chắn muốn xóa thuốc {ma_thuoc} vĩnh viễn khỏi hệ thống không?")
+        xac_nhan = messagebox.askyesno("Xác nhận xóa", f"Bạn có chắc chắn muốn xóa thuốc {ma_thuoc} vĩnh viễn khỏi hệ thống?")
         if xac_nhan:
-            # 1. ÉP BUỘC XÓA TRÊN GIAO DIỆN TREEVIEW TRƯỚC
+            # 1. XÓA NGAY TRÊN GIAO DIỆN TREEVIEW ĐỂ HIỂN THỊ TRỰC QUAN
             try:
                 self.tree.delete(item_duoc_chon)
             except Exception as e:
-                print(f"Lỗi xóa dòng Treeview: {e}")
+                print(f"Lỗi giao diện Treeview: {e}")
 
-            # 2. CAN THIỆP TRIỆT ĐỂ VÀO FILE JSON NỀN
-            # Đường dẫn mặc định đến file dữ liệu của đồ án (bạn kiểm tra xem đúng tên file chưa nhé)
-            duong_dan_json = "du_lieu/kho_thuoc.json" 
-            if not os.path.exists(duong_dan_json):
-                # Dự phòng nếu file nằm ở thư mục luu_tru hoặc tên khác
-                duong_dan_json = "luu_tru/kho_thuoc.json"
+            # 2. QUÉT TOÀN BỘ THƯ MỤC DỰ ÁN ĐỂ TÌM FILE JSON CHỨA MÃ THUỐC ĐÓ
+            da_xoa_json = False
+            
+            # Liệt kê tất cả các file .json khả nghi trong thư mục dự án của bạn
+            file_json_list = []
+            for root_dir, dirs, files in os.walk("."):
+                # Bỏ qua thư mục ẩn venv hoặc .git để tìm cho nhanh
+                if "venv" in root_dir or ".git" in root_dir or "__pycache__" in root_dir:
+                    continue
+                for file in files:
+                    if file.endswith(".json") and file != "lich_su_don_hang.json":
+                        file_json_list.append(os.path.join(root_dir, file))
 
-            da_ghi_file = False
-            try:
-                if os.path.exists(duong_dan_json):
-                    # Đọc trực tiếp file JSON lên dạng dict
-                    with open(duong_dan_json, 'r', encoding='utf-8') as f:
+            # Tiến hành đục bỏ mã thuốc ở TẤT CẢ các file JSON tìm thấy
+            for path in file_json_list:
+                try:
+                    with open(path, 'r', encoding='utf-8') as f:
                         data = json.load(f)
                     
-                    # Xóa mã thuốc khỏi dictionary (Hỗ trợ cả dạng dict bọc list hoặc dict thuần)
-                    if isinstance(data, dict) and ma_thuoc in data:
-                        del data[ma_thuoc]
-                        da_ghi_file = True
+                    local_deleted = False
+                    # Trường hợp dữ liệu là Dictionary
+                    if isinstance(data, dict):
+                        if ma_thuoc in data:
+                            del data[ma_thuoc]
+                            local_deleted = True
+                        else:
+                            for k, v in data.items():
+                                if isinstance(v, dict) and ma_thuoc in v:
+                                    del v[ma_thuoc]
+                                    local_deleted = True
+                                    break
+                                    
+                    # Trường hợp dữ liệu là List (Danh sách đối tượng)
                     elif isinstance(data, list):
-                        # Nếu JSON lưu dạng danh sách các dòng
-                        data = [item for item in data if item.get('ma_thuoc') != ma_thuoc and item.get('Mã Thuốc') != ma_thuoc]
-                        da_ghi_file = True
+                        old_len = len(data)
+                        data = [item for item in data if item.get('ma_thuoc') != ma_thuoc and item.get('Mã Thuốc') != ma_thuoc and item.get('ma') != ma_thuoc]
+                        if len(data) < old_len:
+                            local_deleted = True
                     
-                    if da_ghi_file:
-                        # Ghi đè lại nội dung mới đã sạch bóng thuốc T01 vào file JSON
-                        with open(duong_dan_json, 'w', encoding='utf-8') as f:
+                    # Nếu file này chứa mã thuốc vừa xóa, tiến hành ghi đè sập nội dung mới vào
+                    if local_deleted:
+                        with open(path, 'w', encoding='utf-8') as f:
                             json.dump(data, f, ensure_ascii=False, indent=4)
-                        print("Đã ghi đè file JSON thành công!")
-            except Exception as e:
-                print(f"Lỗi khi can thiệp trực tiếp file JSON: {e}")
+                        print(f"[XÁC NHẬN] Đã xóa triệt để thuốc {ma_thuoc} trong file: {path}")
+                        da_xoa_json = True
+                except Exception as e:
+                    print(f"Không thể can thiệp file {path}: {e}")
 
-            # 3. ĐỒNG BỘ LẠI BỘ NHỚ RAM (self.kho_thuoc) ĐỂ CHƯƠNG TRÌNH KHÔNG BỊ XUNG ĐỘT
+            # 3. ĐỒNG BỘ LẠI BẢNG BĂM TRÊN RAM ĐỂ TRÁNH XUNG ĐỘT KHI CHẠY TIẾP
             try:
-                if hasattr(self, 'doc_kho_thuoc_tu_json'):
-                    # Load lại file JSON mới vào cấu trúc bảng băm để chạy tiếp mà không cần bật lại app
-                    self.kho_thuoc = self.doc_kho_thuoc_tu_json() 
-                elif hasattr(self, 'luu_va_lam_moi_kho'):
-                    # Hoặc gọi hàm đồng bộ của bạn nhưng không vẽ lại bảng dữ liệu
-                    try:
-                        self.kho_thuoc.xoa(ma_thuoc)
-                    except:
-                        pass
+                if hasattr(self, 'kho_thuoc'):
+                    for ten_ham in ['xoa', 'xoa_thuoc', 'delete', 'remove']:
+                        if hasattr(self.kho_thuoc, ten_ham):
+                            getattr(self.kho_thuoc, ten_ham)(ma_thuoc)
+                            break
             except:
                 pass
 
-            messagebox.showinfo("Thành công", f"Đã xóa vĩnh viễn thuốc {ma_thuoc} khỏi file dữ liệu hệ thống!")
+            if da_xoa_json:
+                messagebox.showinfo("Thành công", f"Đã xóa vĩnh viễn thuốc {ma_thuoc} khỏi giao diện!")
+            else:
+                messagebox.showwarning("Cảnh báo", f"Đã xóa trên giao diện nhưng không tìm thấy mã {ma_thuoc} trong các file JSON nền!")
     def xu_ly_sua_thuoc(self):
         """Mở form sửa thuốc tương thích 100% với form_thuoc.py hiện tại mà không lỗi tham số."""
         if not hasattr(self, 'tree'):
