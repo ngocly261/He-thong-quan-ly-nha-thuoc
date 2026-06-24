@@ -238,7 +238,7 @@ class CuaSoChinh(tk.Tk):
             else:
                 messagebox.showwarning("Cảnh báo", f"Đã xóa trên giao diện nhưng không tìm thấy mã {ma_thuoc} trong các file JSON nền!")
     def xu_ly_sua_thuoc(self):
-        """Mở form sửa thuốc tương thích 100% với form_thuoc.py hiện tại mà không lỗi tham số."""
+        """Mở form sửa thuốc và nạp dữ liệu cũ vào các ô nhập."""
         if not hasattr(self, 'tree'):
             return
             
@@ -247,12 +247,14 @@ class CuaSoChinh(tk.Tk):
             messagebox.showwarning("Nhắc nhở", "Vui lòng chọn một loại thuốc trong bảng để sửa!")
             return
             
+        # 1. Lấy mã thuốc từ dòng được chọn
         ma_thuoc = self.tree.item(item_duoc_chon)['values'][0]
         thuoc_hien_tai = self.kho_thuoc[ma_thuoc]
         
+        # 2. Mở FormThuoc (truyền thêm hàm callback để làm mới bảng sau khi lưu)
         from giao_dien.form_thuoc import FormThuoc
-        cua_so_sua = FormThuoc(self, self.kho_thuoc)
+        cua_so_sua = FormThuoc(self, self.kho_thuoc, self.lam_moi_bang_du_lieu)
         
-        cua_so_sua.thuoc_can_sua = thuoc_hien_tai
+        # 3. Gọi hàm nạp dữ liệu (chúng ta sẽ viết hàm này ở Bước 2)
+        cua_so_sua.nap_du_lieu_sua(thuoc_hien_tai)
         
-        cua_so_sua.bind("<Destroy>", lambda e: self.lam_moi_bang_du_lieu())

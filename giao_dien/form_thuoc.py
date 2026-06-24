@@ -75,7 +75,7 @@ class FormThuoc(tk.Toplevel):
             self.dynamic_entry_2 = None
 
     def luu_du_lieu(self):
-        """Bắt lỗi nhập liệu chặt chẽ và khởi tạo đúng đối tượng lớp con đưa vào hệ thống."""
+        """Bắt lỗi nhập liệu chặt chẽ, hỗ trợ cả Thêm mới và Sửa thuốc, đồng bộ dữ liệu vào file JSON."""
         try:
             ma = self.entries["mã"].get().strip().upper()
             ten = self.entries["tên"].get().strip()
@@ -90,6 +90,7 @@ class FormThuoc(tk.Toplevel):
                 
             loai = self.cbo_loai.get()
             
+            # Khởi tạo đúng đối tượng lớp con dựa trên phân loại thuốc
             if loai == "Thuốc kê đơn":
                 ma_bs = self.dynamic_entry_1.get().strip() if self.dynamic_entry_1 else ""
                 lieu = self.dynamic_entry_2.get().strip() if self.dynamic_entry_2 else ""
@@ -100,10 +101,87 @@ class FormThuoc(tk.Toplevel):
             else:
                 thuoc_moi = ThuocKhongKeDon(ma, ten, thanh_phan, dvt, gia, hsd, ton)
                 
-            self.kho.them_thuoc(thuoc_moi)
-            self.callback_cap_nhat() # Làm mới bảng hiển thị chính
-            messagebox.showinfo("Thành công", f"Đã thêm/cập nhật thuốc '{ten}' vào kho thuốc!")
+            # --- XỬ LÝ PHÂN NHÁNH: SỬA THUỐC VS THÊM MỚI ---
+            is_edit_mode = getattr(self, 'mode', 'add') == 'edit'
+            
+            if is_edit_mode:
+                # Chế độ SỬA: Ghi đè trực tiếp đối tượng thuốc mới vào Mã thuốc cũ trong bảng băm (RAM)
+                # Nếu lớp KhoThuoc của bạn có hàm cap_nhat, bạn có thể đổi thành: self.kho.cap_nhat(ma, thuoc_moi)
+                if hasattr(self.kho, 'kho_thuoc') and isinstance(self.kho.kho_thuoc, dict):
+                    self.kho.kho_thuoc[ma] = thuoc_moi
+                else:
+                    # Dự phòng nếu self.kho kế thừa hoặc chính là dictionary chứa dữ liệu
+                    try:
+                        self.kho[ma] = thuoc_moi
+                    except:
+                        # Nếu self.kho có hàm thêm/cập nhật tùy biến thì dùng trực tiếp
+                        self.kho.them_thuoc(thuoc_moi)
+            else:
+                # Chế độ THÊM MỚI: Báo lỗi nếu trùng mã thuốc
+                # Kiểm tra trùng mã dựa trên cấu trúc lưu trữ của self.kho
+                da_ton_tai = False
+                if hasattr(self.kho, 'kho_thuoc') and ma in self.kho.kho_thuoc:
+                    da_ton_tai = True
+                elif hasattr(self.kho, '__contains__') and ma in self.kho:
+                    da_ton_tai = True
+                    
+                if da_ton_tai:
+                    messagebox.showerror("Lỗi dữ liệu", f"Mã thuốc '{ma}' đã tồn tại trong kho! Không thể thêm mới.")
+                    return
+                    
+                self.kho.them_thuoc(thuoc_moi)
+            
+            # --- ĐỒNG BỘ GHI FILE JSON VĨNH VIỄN XUỐNG Ổ CỨNG ---
+            try:
+                from luu_tru.xu_ly_json import ghi_kho_thuoc_vao_json
+                ghi_kho_thuoc_vao_json(self.kho)
+                print(f"[ĐỒNG BỘ JSON] Đã lưu thông tin cập nhật của thuốc {ma} vào file JSON thành công.")
+            except Exception as json_err:
+                print(f"[CẢNH BÁO] Không thể ghi file JSON tự động: {json_err}")
+            
+            # Làm mới bảng hiển thị chính (Treeview) ở cửa sổ chính
+            if hasattr(self, 'callback_cap_nhat') and self.callback_cap_nhat:
+                self.callback_cap_nhat()
+                
+            messagebox.showinfo("Thành công", f"Đã lưu/cập nhật thông tin thuốc '{ten}' vào hệ thống vĩnh viễn!")
             self.destroy()
             
         except ValueError as e:
             messagebox.showerror("Lỗi dữ liệu", f"Vui lòng kiểm tra lại định dạng nhập liệu!\nChi tiết: {e}")
+    def nap_du_lieu_sua(self, thuoc):
+        """Tự động điền dữ liệu cũ của thuốc được chọn vào các ô nhập."""
+        self.title(f"Sửa Thông Tin Thuốc: {thuoc.ma_thuoc}")
+        self.mode = "edit"  # Đánh dấu đang ở chế độ SỬA
+        
+        # Điền dữ liệu vào các ô Entry (Xóa chữ cũ trước khi chèn)
+        self.entries['mã'].insert(0, thuoc.ma_thuoc)
+        self.entries['mã'].config(state='disabled') # Khóa ô nhập mã, không cho sửa mã thuốc
+        
+        self.entries['tên'].insert(0, thuoc.ten_thuoc)
+        self.entries['thành'].insert(0, thuoc.thanh_phan)
+        self.entries['đơn'].insert(0, thuoc.don_vi_tinh)
+        self.entries['giá'].insert(0, str(thuoc.gia_nhap))
+        self.entries['hạn'].insert(0, thuoc.han_su_dung)
+        
+        # Riêng số lượng tồn kho (chỉ thuốc không kê đơn hoặc chung tùy logic của bạn)
+        if 'số' in self.entries:
+            self.entries['số'].insert(0, str(thuoc.so_luong_ton))
+        
+        # Tự động chọn đúng Phân loại thuốc trên Combobox
+        if hasattr(self, 'cbo_loai'):
+            ten_lop = thuoc.__class__.__name__
+            if ten_lop == "ThuocKeDon":
+                self.cbo_loai.set("Thuốc kê đơn")
+                self.thay_doi_loai_thuoc() # Gọi hàm hiển thị ô dynamic
+                if hasattr(self, 'dynamic_entry_1') and self.dynamic_entry_1:
+                    self.dynamic_entry_1.insert(0, getattr(thuoc, 'ma_bac_si', ''))
+                if hasattr(self, 'dynamic_entry_2') and self.dynamic_entry_2:
+                    self.dynamic_entry_2.insert(0, getattr(thuoc, 'cach_dung', ''))
+            elif ten_lop == "ThucPhamChucNang":
+                self.cbo_loai.set("Thực phẩm chức năng")
+                self.thay_doi_loai_thuoc()
+                if hasattr(self, 'dynamic_entry_1') and self.dynamic_entry_1:
+                    self.dynamic_entry_1.insert(0, getattr(thuoc, 'nha_san_xuat', ''))
+            else:
+                self.cbo_loai.set("Thuốc không kê đơn")
+                self.thay_doi_loai_thuoc()
